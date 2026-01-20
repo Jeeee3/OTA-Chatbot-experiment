@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>H-Stay Mock</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1 id="brand"></h1>
+        <div class="meta" id="subtitle"></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="pill" id="pidpill"></div>
+      <select id="langSel" class="input" style="width:auto; min-width:120px"></select>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="hd"><h2 id="taskTitle"></h2><span class="pill" id="condpill"></span></div>
+      <div class="bd">
+        <div class="small" id="taskText"></div>
+        <div class="hr"></div>
+        <div class="small" style="margin-bottom:8px"><b id="controlsTitle"></b></div>
+        <div class="small" id="controlText"></div>
+        <div class="hr"></div>
+
+        <!-- left panel varies by condition -->
+        <div id="leftPanel"></div>
+
+        <div class="hr"></div>
+        <div class="tiny" id="note"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <h2 id="listTitle">Hotels</h2>
+        <div class="row">
+          <button class="btn secondary" id="btnCompare" disabled></button>
+          <button class="btn" id="btnContinue" disabled></button>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="list" id="hotelList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="panel">
+    <div class="hd">
+      <div style="display:flex; align-items:center; gap:10px">
+        <div class="logo" style="width:26px;height:26px;border-radius:10px"></div>
+        <div>
+          <div style="font-weight:800" id="modalTitle"></div>
+          <div class="tiny" id="modalSub"></div>
+        </div>
+      </div>
+      <button class="btn ghost" id="modalClose"></button>
+    </div>
+    <div class="bd" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="./assets/common.js"></script>
+<script>
+(function(){
+  const condition = 'c2';
+  const logger = makeLogger(condition);
+  let hotels = [];
+  let filtered = [];
+  let selectedHotelId = null;
+  let compareIds = new Set();
+
+  function setLang(lang){
+    const sel = document.getElementById('langSel');
+    sel.value = lang;
+    renderStatic();
+    renderLeftPanel();
+    renderHotels();
+  }
+
+  function renderStatic(){
+    const lang = logger.lang;
+    document.getElementById('brand').textContent = t(lang,'brand');
+    document.getElementById('subtitle').textContent = t(lang,'subtitle');
+    document.getElementById('pidpill').textContent = `PID: ${logger.pid}`;
+    document.getElementById('condpill').textContent = condition.toUpperCase();
+    document.getElementById('taskTitle').textContent = t(lang,'taskTitle');
+    document.getElementById('taskText').textContent = t(lang,'taskText');
+    document.getElementById('controlsTitle').textContent = t(lang,'controlsTitle');
+    document.getElementById('controlText').textContent = t(lang,'controlText');
+    document.getElementById('btnCompare').textContent = t(lang,'compare');
+    document.getElementById('btnContinue').textContent = t(lang,'continue');
+    const slt = document.getElementById('shortlistTitle'); if(slt) slt.textContent = t(lang,'shortlistTitle');
+    document.getElementById('modalClose').textContent = t(lang,'close');
+    document.getElementById('note').textContent = t(lang,'note');
+  }
+
+  function openModal(title, sub, html){
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalSub').textContent = sub || '';
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modal').classList.add('on');
+  }
+  function closeModal(){ document.getElementById('modal').classList.remove('on'); }
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('modal').addEventListener('click', (e)=>{ if(e.target.id==='modal') closeModal(); });
+
+  function renderLeftPanel(){
+    const lang = logger.lang;
+    const host = document.getElementById('leftPanel');
+    host.innerHTML = '';
+    if(condition==='c3'){
+      const box = document.createElement('div');
+      box.innerHTML = `
+        <div class="small" style="margin-bottom:8px"><b>${t(lang,'filtersTitle')}</b></div>
+        <div class="row" style="align-items:flex-start">
+          <div style="flex:1; min-width:220px">
+            <label><input type="checkbox" id="fSust"/> ${t(lang,'sustainable')}<div class="tiny">${t(lang,'sustainableHint')}</div></label>
+            <div class="hr"></div>
+            <label>${t(lang,'priceRange')}</label>
+            <input class="input" id="fPrice" type="range" min="500" max="900" step="10" value="900"/>
+            <div class="tiny" id="fPriceVal"></div>
+            <div class="hr"></div>
+            <label>${t(lang,'ratingMin')}</label>
+            <select id="fRating" class="input">
+              <option value="0">0+</option>
+              <option value="4.0">4.0+</option>
+              <option value="4.3">4.3+</option>
+              <option value="4.5">4.5+</option>
+              <option value="4.7">4.7+</option>
+            </select>
+            <div class="hr"></div>
+            <label>${t(lang,'metroMax')}</label>
+            <select id="fMetro" class="input">
+              <option value="999">Any</option>
+              <option value="5">≤ 5</option>
+              <option value="8">≤ 8</option>
+              <option value="10">≤ 10</option>
+              <option value="12">≤ 12</option>
+            </select>
+            <div class="hr"></div>
+            <button class="btn secondary" id="btnReset">${t(lang,'reset')}</button>
+          </div>
+        </div>
+      `;
+      host.appendChild(box);
+
+      const fSust = host.querySelector('#fSust');
+      const fPrice = host.querySelector('#fPrice');
+      const fPriceVal = host.querySelector('#fPriceVal');
+      const fRating = host.querySelector('#fRating');
+      const fMetro = host.querySelector('#fMetro');
+      const btnReset = host.querySelector('#btnReset');
+      function updatePriceVal(){ fPriceVal.textContent = `≤ ${fmtPrice(parseInt(fPrice.value,10))}`; }
+      updatePriceVal();
+
+      function apply(){
+        const maxP = parseInt(fPrice.value,10);
+        const minR = parseFloat(fRating.value);
+        const maxM = parseInt(fMetro.value,10);
+        const mustS = fSust.checked;
+        filtered = hotels.filter(h=>{
+          if(h.price>maxP) return false;
+          if(h.rating<minR) return false;
+          if(h.metro_min>maxM) return false;
+          if(mustS && !h.sustainable) return false;
+          return true;
+        });
+        logger.push('filter_change', {mustS, maxP, minR, maxM, count: filtered.length});
+        renderHotels();
+      }
+
+      fSust.onchange = apply;
+      fPrice.oninput = ()=>{ updatePriceVal(); };
+      fPrice.onchange = apply;
+      fRating.onchange = apply;
+      fMetro.onchange = apply;
+      btnReset.onclick = ()=>{
+        fSust.checked=false; fPrice.value=900; fRating.value="0"; fMetro.value="999";
+        updatePriceVal();
+        logger.push('filter_reset', {});
+        apply();
+      };
+    }else{
+      // chatbot panel
+      const box = document.createElement('div');
+      box.innerHTML = `
+        <div class="small" style="margin-bottom:8px"><b>${t(lang,'chatTitle')}</b></div>
+        <div class="card" style="background:transparent; box-shadow:none; border:1px solid var(--border); border-radius:18px">
+          <div class="bd">
+            <div class="chat" id="chat"></div>
+            <div class="hr"></div>
+            <div class="small" style="margin-bottom:6px"><b id="shortlistTitle"></b></div>
+            <div class="shortlist" id="shortlist"></div>
+            
+            <div class="hr"></div>
+            <div class="footer">
+              <input class="input" id="chatInput" placeholder="${t(lang,'placeholder')}" />
+              <button class="btn" id="chatSend">${t(lang,'send')}</button>
+            </div>
+            <div class="tiny" style="margin-top:8px">${t(lang,'controlText')}</div>
+          </div>
+        </div>
+      `;
+      host.appendChild(box);
+
+      const chat = host.querySelector('#chat');
+      const inp = host.querySelector('#chatInput');
+      const send = host.querySelector('#chatSend');
+
+      function addMsg(who, text){
+        const wrap = document.createElement('div');
+        wrap.className = 'msg ' + (who==='ai'?'ai':'me');
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = text;
+        if(who==='ai'){
+          wrap.appendChild(avatar);
+          wrap.appendChild(bubble);
+        }else{
+          wrap.appendChild(bubble);
+        }
+        chat.appendChild(wrap);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      // scripted AI (upgraded: multi-turn, intent-based, stateful)
+      const state = {
+        // user preferences inferred from free text
+        priority: null,   // 'price' | 'location' | 'comfort' | 'sustainability'
+        budgetMax: null,
+        wantsSustain: null, // true/false/null
+        c1_choice: null, // 'A' | 'B' | 'C' (Template B)
+        lastMentionedIds: [],
+        turn: 0
+      };
+
+      const KW = {
+        en: {
+          greet: ['hi','hello','hey'],
+          thanks: ['thanks','thank you','thx'],
+          compare: ['compare','difference','vs','versus'],
+          recommend: ['recommend','suggest','what should i','which should i','best option'],
+          sustain: ['sustain','sustainable','eco','green','environment'],
+          price: ['price','budget','cheap','expensive','cost'],
+          location: ['location','metro','subway','distance','near','walk'],
+          comfort: ['comfort','quiet','noise','room','bed','breakfast','gym','spacious'],
+          detail: ['detail','more info','tell me more','policy','cancellation'],
+          unsure: ['not sure','hard','difficult','confused','no idea']
+        },
+        zh: {
+          greet: ['你好','嗨','哈喽','在吗'],
+          thanks: ['谢谢','感谢','多谢'],
+          compare: ['对比','比较','区别','差异','哪个好','哪个更'],
+          recommend: ['推荐','建议','你觉得','你会选','怎么选','最适合'],
+          sustain: ['环保','可持续','绿色','低碳','生态','碳'],
+          price: ['价格','预算','便宜','贵','花费','成本','性价比'],
+          location: ['位置','地铁','距离','附近','走路','交通','便利','到'],
+          comfort: ['舒适','安静','隔音','房间','床','早餐','健身房','空间','噪音'],
+          detail: ['详情','更多信息','说说','政策','取消','退订'],
+          unsure: ['不确定','纠结','不知道','难选','困惑','看不懂']
+        }
+      };
+
+      function langKW(){ return (logger.lang==='zh') ? KW.zh : KW.en; }
+
+      function extractIds(text){
+        const up = (text || '').toUpperCase();
+        const ids = [];
+        ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'].forEach(id=>{
+          // match standalone or with punctuation
+          const r = new RegExp(`\\b${id}\\b`);
+          if(r.test(up) || up.includes(`${id}.`) || up.includes(`${id} `) || up.includes(` ${id}`)) ids.push(id);
+        });
+        // Also allow "酒店A" / "A酒店"
+        ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'].forEach(id=>{
+          if((text||'').includes(`酒店${id}`) || (text||'').includes(`${id}酒店`)) if(!ids.includes(id)) ids.push(id);
+        });
+        return ids;
+      }
+
+      function parseBudget(text){
+        // supports "<=800", "800以内", "budget 800", "under 800"
+        const s = text || '';
+        let m = s.match(/(?:<=|≤)\s*(\d{3,4})/);
+        if(m) return parseInt(m[1],10);
+        m = s.match(/(\d{3,4})\s*(?:以内|以下)/);
+        if(m) return parseInt(m[1],10);
+        m = s.match(/(?:under|below|budget)\s*\$?\s*(\d{3,4})/i);
+        if(m) return parseInt(m[1],10);
+        m = s.match(/(\d{3,4})\s*(?:rmb|yuan|cny|块|元)/i);
+        if(m) return parseInt(m[1],10);
+        return null;
+      }
+
+      function detectIntent(text){
+        const t0 = (text||'').toLowerCase();
+        const k = langKW();
+        const has = (arr)=>arr.some(w=> (logger.lang==='zh') ? (text||'').includes(w) : t0.includes(w));
+        const ids = extractIds(text);
+        const budget = parseBudget(text);
+        const intent = {
+          ids,
+          budget,
+          greet: has(k.greet),
+          thanks: has(k.thanks),
+          compare: has(k.compare),
+          recommend: has(k.recommend),
+          sustain: has(k.sustain),
+          price: has(k.price),
+          location: has(k.location),
+          comfort: has(k.comfort),
+          detail: has(k.detail),
+          unsure: has(k.unsure)
+        };
+        // if they mention 2+ ids, treat as compare
+        if(intent.ids.length>=2) intent.compare = true;
+        return intent;
+      }
+
+      function scoreHotel(h){
+        // Base weights
+        let wPrice = 0.35, wLoc = 0.25, wComfort = 0.25, wSust = 0.15;
+        if(state.priority==='price'){ wPrice=0.5; wLoc=0.2; wComfort=0.2; wSust=0.1; }
+        if(state.priority==='location'){ wPrice=0.25; wLoc=0.45; wComfort=0.2; wSust=0.1; }
+        if(state.priority==='comfort'){ wPrice=0.25; wLoc=0.2; wComfort=0.45; wSust=0.1; }
+        if(state.priority==='sustainability'){ wPrice=0.25; wLoc=0.2; wComfort=0.2; wSust=0.35; }
+
+        // Condition 1: incorporate Template B choice (soft, not coercive)
+        if(condition==='c1'){
+          if(state.c1_choice==='A'){ wPrice += 0.08; wSust -= 0.05; }
+          if(state.c1_choice==='B'){ wComfort += 0.06; wSust += 0.04; }
+          if(state.c1_choice==='C'){ wSust += 0.12; wPrice -= 0.05; }
+        }
+
+        // Budget softness: penalize above budget, not hard filter
+        let budgetPenalty = 0;
+        if(state.budgetMax && h.price>state.budgetMax){
+          budgetPenalty = (h.price - state.budgetMax) / 400; // 0~1
+        }
+
+        // Normalize features
+        const priceScore = 1 - (h.price - 500) / 450; // 500..950
+        const locScore = 1 - Math.min(h.metro_min, 15) / 15;
+        const comfortScore = Math.min(1, (h.rating - 4.0) / 0.9); // 4.0..4.9
+        const sustScore = h.sustainable ? 1 : 0.1;
+
+        let s = wPrice*priceScore + wLoc*locScore + wComfort*comfortScore + wSust*sustScore;
+        s -= budgetPenalty * 0.25;
+        return s;
+      }
+
+      function applyOrdering(){
+        // sort hotels by score (chatbot conditions)
+        hotels.sort((a,b)=>scoreHotel(b)-scoreHotel(a));
+      }
+
+      function pick(arr){
+        return arr[Math.floor(Math.random()*arr.length)];
+      }
+
+      function hotelLine(h){
+        const lang = logger.lang;
+        const name = hotelTitle(h, lang);
+        const sust = h.sustainable ? ` · 🌿 ${sustLabel(h, lang)}` : '';
+        return `${h.id}. ${name} — ${fmtPrice(h.price)} · ★ ${h.rating.toFixed(1)} · 🚇 ${h.metro_min} min${sust}`;
+      }
+
+      function compareText(ids){
+        const lang = logger.lang;
+        const hs = ids.map(id=>hotels.find(x=>x.id===id)).filter(Boolean);
+        if(hs.length<2) return lang==='zh' ? '你想对比哪两家？例如 A 和 C。' : 'Which two hotels would you like to compare (e.g., A and C)?';
+        const lines = hs.map(h=>`- ${hotelLine(h)}\n  ${(lang==='zh') ? '亮点' : 'Highlights'}: ${highlights(h, lang).join(' · ')}`).join('\n');
+        return (lang==='zh'
+          ? `当然可以。这里是对比：\n${lines}\n\n你更在意：价格 / 位置 / 舒适度 / 可持续？我可以按你的侧重点再总结一遍。`
+          : `Sure — here’s a quick comparison:\n${lines}\n\nWhich matters most to you right now: price, location, comfort, or sustainability? I can summarize accordingly.`
+        );
+      }
+
+      function recommendText(){
+        const lang = logger.lang;
+        applyOrdering();
+        const top = hotels.slice(0,3);
+        const bullets = top.map(h=>`- ${hotelLine(h)}`).join('\n');
+        const autonomy = (lang==='zh')
+          ? '我不会替你下决定，但我可以把权衡点讲清楚，最后由你选。'
+          : "I won’t choose for you, but I can make the trade-offs clearer — you decide.";
+        const follow = (lang==='zh')
+          ? '你想把“预算/位置/舒适/可持续”里哪一项放第一位？（回复：价格/位置/舒适/可持续）'
+          : 'Which should be your #1 priority for this trip? (Reply: price / location / comfort / sustainability)';
+        return `${autonomy}\n\n${(lang==='zh'?'基于你目前的信息，我会优先让你看这几家：':'Based on what you’ve said so far, these are worth a look:')}\n${bullets}\n\n${follow}`;
+      }
+
+      function sustainExplainText(ids){
+        const lang = logger.lang;
+        if(ids.length===1){
+          const h = hotels.find(x=>x.id===ids[0]);
+          if(!h) return '';
+          if(condition==='c2'){
+            return lang==='zh'
+              ? `关于${h.id}，页面里可持续信息有限。我可以把详情页中出现的内容整理给你（你也可以点击“查看详情”）。`
+              : `For ${h.id}, sustainability info on the page is limited. I can summarize what’s shown in the details (or you can click “View details”).`;
+          }
+          // c1: educational but non-coercive
+          const bl = sustBlurb(h, lang);
+          return lang==='zh'
+            ? `关于${h.id}的可持续信息：${bl}\n\n就这次旅行而言，你希望可持续是“加分项”还是“尽量要有”？`
+            : `Sustainability info for ${h.id}: ${bl}\n\nFor this trip, do you want sustainability as a bonus or as something you’d prefer to have?`;
+        }
+        // general
+        if(condition==='c2'){
+          return lang==='zh'
+            ? '如果你关心环保，我可以把每家酒店页面中出现的相关描述原样整理出来（不做评价）。你想看哪几家？'
+            : 'If you care about sustainability, I can summarize what each hotel page shows (without judging). Which hotels should I pull up?';
+        }
+        return lang==='zh'
+          ? '如果你愿意，我可以把可持续信息作为对比维度之一，帮你把“舒适/价格/位置/环保”之间的权衡点讲清楚。你现在更偏向哪一项？'
+          : 'If you’d like, I can include sustainability as one comparison dimension and clarify trade-offs between comfort, price, location, and sustainability. Which matters most to you right now?';
+      }
+
+      function inferPriority(intent, text){
+        // explicit priority
+        if(logger.lang==='zh'){
+          if((text||'').includes('价格') || (text||'').includes('预算') || (text||'').includes('性价比')) return 'price';
+          if((text||'').includes('位置') || (text||'').includes('地铁') || (text||'').includes('交通')) return 'location';
+          if((text||'').includes('舒适') || (text||'').includes('安静') || (text||'').includes('隔音')) return 'comfort';
+          if((text||'').includes('可持续') || (text||'').includes('环保') || (text||'').includes('绿色')) return 'sustainability';
+        }else{
+          const s = (text||'').toLowerCase();
+          if(s.includes('price') || s.includes('budget') || s.includes('cheap') || s.includes('value')) return 'price';
+          if(s.includes('location') || s.includes('metro') || s.includes('subway') || s.includes('near')) return 'location';
+          if(s.includes('comfort') || s.includes('quiet') || s.includes('room') || s.includes('bed')) return 'comfort';
+          if(s.includes('sustain') || s.includes('eco') || s.includes('green')) return 'sustainability';
+        }
+        // implicit: if they asked about one dimension strongly
+        if(intent.price && !intent.location && !intent.comfort && !intent.sustain) return 'price';
+        if(intent.location && !intent.price && !intent.comfort && !intent.sustain) return 'location';
+        if(intent.comfort && !intent.price && !intent.location && !intent.sustain) return 'comfort';
+        if(intent.sustain && !intent.price && !intent.location && !intent.comfort) return 'sustainability';
+        return null;
+      }
+
+      // Initial scripted opening (still realistic, but not dead-end)
+      function ai(text){ addMsg('ai', text); logger.push('chat_ai', {text}); }
+      function user(text){ addMsg('me', text); logger.push('chat_user', {text}); }
+
+      if(condition==='c1'){
+        ai(t(lang,'c1_open_1'));
+        setTimeout(()=>ai(t(lang,'c1_q')), 250);
+      }else{
+        ai(t(lang,'c2_open_1'));
+        setTimeout(()=>{
+          const lang2 = logger.lang;
+          ai(lang2==='zh'
+            ? '例如你可以问：\n- “预算800以内，离地铁近”\n- “对比A和C的差异”\n- “哪家更安静/更适合休息”\n你也可以随便用一句话描述你的需求，我会追问关键点并帮你缩小范围。'
+            : 'For example, you can ask:\n- “Budget under 800 and close to the metro”\n- “Compare A vs C”\n- “Which one is quieter?”\nOr just describe your needs in one sentence — I’ll ask a couple of clarifying questions and narrow options with you.');
+        }, 250);
+      }
+
+      function respond(userText){
+        const lang2 = logger.lang;
+        if(!userText.trim()) return;
+        state.turn += 1;
+
+        user(userText);
+        const intent = detectIntent(userText);
+        logger.push('chat_intent', intent);
+
+        // ---- conversation memory ----
+        state.lastQuestion = state.lastQuestion || null; // 'budget'|'metro'|'priority'|'compare'|'relax'
+        state.metroMax = state.metroMax || null;
+        state.wantQuiet = state.wantQuiet || false;
+
+        // carryover: if last question expects a short numeric answer
+        const raw = (userText||'').trim();
+        const digits = raw.match(/(\d{1,2})/);
+        const hasLe = raw.includes('≤') || raw.includes('<=');
+        if(state.lastQuestion==='metro' && !intent.location){
+          if(digits){
+            state.metroMax = parseInt(digits[1],10);
+            logger.push('metro_set', {metroMax: state.metroMax, via:'carryover'});
+          }
+        }
+        if(state.lastQuestion==='budget' && !intent.price){
+          const d3 = raw.match(/(\d{3,4})/);
+          if(d3){
+            state.budgetMax = parseInt(d3[1],10);
+            logger.push('budget_set', {budgetMax: state.budgetMax, via:'carryover'});
+          }
+        }
+        if(state.lastQuestion==='priority'){
+          // accept short labels
+          if(lang2==='zh'){
+            if(raw.includes('价格')) state.priority='price';
+            else if(raw.includes('位置')||raw.includes('地铁')||raw.includes('交通')) state.priority='location';
+            else if(raw.includes('舒适')||raw.includes('安静')) state.priority='comfort';
+            else if(raw.includes('可持续')||raw.includes('环保')||raw.includes('绿色')) state.priority='sustainability';
+          }else{
+            const low = raw.toLowerCase();
+            if(low.includes('price')) state.priority='price';
+            else if(low.includes('location')||low.includes('metro')) state.priority='location';
+            else if(low.includes('comfort')||low.includes('quiet')) state.priority='comfort';
+            else if(low.includes('sustain')) state.priority='sustainability';
+          }
+          if(state.priority){
+            logger.push('priority_set', {priority: state.priority, via:'carryover'});
+          }
+        }
+
+        // track hotel mentions
+        if(intent.ids.length){
+          state.lastMentionedIds = intent.ids.slice(0,6);
+        }
+
+        // Template B capture in c1 (A/B/C)
+        if(condition==='c1' && !state.c1_choice){
+          const up = raw.toUpperCase();
+          if(up==='A'||up==='B'||up==='C'){
+            state.c1_choice = up;
+            logger.push('c1_choice', {choice: up});
+            const reflect = (up==='A')
+              ? (lang2==='zh' ? '明白：这次更偏向性价比与便利，环保作为加分项。' : 'Got it — value and convenience first; sustainability as a bonus.')
+              : (up==='B')
+                ? (lang2==='zh' ? '明白：舒适重要，同时尽量避开明显不环保的选项。' : 'Got it — comfort matters, and you’d like to avoid clearly unsustainable options.')
+                : (lang2==='zh' ? '明白：这次你更重视可持续性，愿意在价格或位置上做些取舍。' : 'Got it — sustainability matters more this time, and you’re open to small trade-offs on price or location.');
+            ai(reflect + (lang2==='zh' ? ' 你可以直接告诉我预算上限（如600以内）或想对比哪两家（如A和G）。' : ' Tell me your budget (e.g., under 600) or two hotels to compare (e.g., A and G).'));
+            state.lastQuestion = null;
+            applyOrdering(); renderHotels(); updateShortlist([]);
+            return;
+          }
+        }
+
+        // budget parse
+        if(intent.budget){
+          state.budgetMax = intent.budget;
+          const rg = raw.match(/(\d{3,4})\s*[\-~—到至]\s*(\d{3,4})/);
+          if(rg){ state.budgetMax = Math.max(parseInt(rg[1]), parseInt(rg[2])); }
+          const in1 = raw.match(/(\d{3,4})\s*(以内|以下|under|below)/i);
+          if(in1){ state.budgetMax = parseInt(in1[1]); }
+          logger.push('budget_set', {budgetMax: state.budgetMax});
+        }
+
+        // infer priority
+        const pr = inferPriority(intent, userText);
+        if(pr){
+          state.priority = pr;
+          logger.push('priority_set', {priority: pr, via:'message'});
+        }
+
+        // quiet preference
+        if(lang2==='zh'){
+          if(raw.includes('安静') || raw.includes('隔音') || raw.includes('噪音')) state.wantQuiet = true;
+        }else{
+          const low = raw.toLowerCase();
+          if(low.includes('quiet') || low.includes('noise') || low.includes('soundproof')) state.wantQuiet = true;
+        }
+
+        // metro parse robust
+        const metroZh = raw.match(/(地铁|到地铁|离地铁).{0,6}(<=|≤|不超过|最多)?\s*(\d{1,2})\s*分钟/);
+        const metroEn = raw.match(/(metro|subway).{0,10}(<=|≤|under|within|no more than)?\s*(\d{1,2})\s*(min|minutes)/i);
+        if(metroZh) state.metroMax = parseInt(metroZh[3],10);
+        if(metroEn) state.metroMax = parseInt(metroEn[3],10);
+        if(state.metroMax && (metroZh||metroEn)){
+          logger.push('metro_set', {metroMax: state.metroMax, via:'pattern'});
+        }
+
+        // ---- helper funcs ----
+        function isQuietHotel(h){
+          const zh = (h.highlights_zh||[]).join(' ');
+          const en = (h.highlights_en||[]).join(' ').toLowerCase();
+          return zh.includes('安静') || zh.includes('隔音') || en.includes('quiet') || en.includes('soundproof');
+        }
+
+        function hardOk(h){
+          if(state.budgetMax && h.price > state.budgetMax) return false;
+          if(state.metroMax && h.metro_min > state.metroMax) return false;
+          if(state.wantQuiet && !isQuietHotel(h)) return false;
+          if(state.wantsSustain===true && !h.sustainable) return false;
+          return true;
+        }
+
+        function candidates(){
+          const cand = hotels.filter(hardOk);
+          return cand;
+        }
+
+        function bestN(arr, n){
+          const a = arr.slice().sort((x,y)=>scoreHotel(y)-scoreHotel(x));
+          return a.slice(0,n);
+        }
+
+        function briefList(arr){
+          const lang3 = logger.lang;
+          return arr.map(h=>{
+            const nm = hotelTitle(h, lang3);
+            return `${h.id}. ${nm}`;
+          }).join(lang3==='zh'?'、':', ');
+        }
+
+        function constraintSummary(){
+          const pieces = [];
+          if(state.budgetMax) pieces.push(lang2==='zh' ? `预算≤¥${state.budgetMax}` : `budget ≤ ¥${state.budgetMax}`);
+          if(state.metroMax) pieces.push(lang2==='zh' ? `地铁≤${state.metroMax}分钟` : `metro ≤ ${state.metroMax} min`);
+          if(state.wantQuiet) pieces.push(lang2==='zh' ? '偏安静' : 'quiet');
+          if(state.priority){
+            const map = {price:(lang2==='zh'?'价格优先':'price-first'),
+                         location:(lang2==='zh'?'位置优先':'location-first'),
+                         comfort:(lang2==='zh'?'舒适优先':'comfort-first'),
+                         sustainability:(lang2==='zh'?'可持续优先':'sustainability-first')};
+            pieces.push(map[state.priority]||state.priority);
+          }
+          return pieces.length ? pieces.join('｜') : (lang2==='zh'?'（未设置偏好）':'(no preferences yet)');
+        }
+
+        // ---- UI: shortlist rendering ----
+        function whyTag(h){
+          const tags = [];
+          if(state.budgetMax && h.price<=state.budgetMax) tags.push(lang2==='zh'?'符合预算':'within budget');
+          if(state.metroMax && h.metro_min<=state.metroMax) tags.push(lang2==='zh'?'近地铁':'close to metro');
+          if(state.wantQuiet && isQuietHotel(h)) tags.push(lang2==='zh'?'更安静':'quieter');
+          if(h.sustainable && condition==='c1') tags.push(lang2==='zh'?'可持续信息更清晰':'clearer sustainability info');
+          if(tags.length===0){
+            tags.push(lang2==='zh'?'较匹配你的偏好':'matches your preferences');
+          }
+          return tags.slice(0,2).join(lang2==='zh'?' + ':' + ');
+        }
+
+        window.updateShortlist = function(arr){
+          window._lastShortlist = arr;
+          const box = document.getElementById('shortlist');
+          if(!box) return;
+          box.innerHTML = '';
+          arr.forEach(h=>{
+            const card = document.createElement('div');
+            card.className = 'scard';
+            const title = `${t(lang2,'aiPicked')} · ${h.id}. ${hotelTitle(h, lang2)}`;
+            const why = whyTag(h);
+            card.innerHTML = `
+              <div class="top">
+                <div>
+                  <div class="ttl">${title}</div>
+                  <div class="why">${why}</div>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="sbtn" data-act="view" data-id="${h.id}">${t(lang2,'view')}</button>
+                <button class="sbtn" data-act="cmp" data-id="${h.id}">${t(lang2,'addToCompare')}</button>
+                <button class="sbtn primary" data-act="sel" data-id="${h.id}">${t(lang2,'select')}</button>
+              </div>`;
+            box.appendChild(card);
+          });
+
+          box.querySelectorAll('button[data-act="view"]').forEach(btn=>{
+            btn.onclick = ()=>{
+              const id = btn.getAttribute('data-id');
+              const h = hotels.find(x=>x.id===id);
+              logger.push('view_details', {hotelId:id, via:'shortlist'});
+              const sustSection = `
+                <div class="hr"></div>
+                <div style="font-weight:800; margin-bottom:6px">${t(lang2,'sustainability')}</div>
+                <div class="small">${(condition==='c3') ? t(lang2,'sustainabilityText') : sustBlurb(h, lang2)}</div>
+              `;
+              openModal(
+                `${h.id}. ${hotelTitle(h, lang2)}`,
+                `★ ${h.rating.toFixed(1)} · ${fmtPrice(h.price)} · 🚇 ${h.metro_min} min`,
+                `<div class="small"><b>${lang2==='zh'?'亮点':'Highlights'}</b>: ${highlights(h, lang2).join(' · ')}</div>
+                 <div class="small" style="margin-top:8px"><b>${lang2==='zh'?'取消政策':'Cancellation'}</b>: ${cancelText(h, lang2)}</div>
+                 ${sustSection}`
+              );
+            };
+          });
+          box.querySelectorAll('button[data-act="sel"]').forEach(btn=>{
+            btn.onclick = ()=>{
+              const id = btn.getAttribute('data-id');
+              selectedHotelId = id;
+              logger.push('select_hotel', {hotelId:id, via:'shortlist'});
+                            document.getElementById('btnCompare').disabled = (compareIds.size<2);
+              const bsl2 = document.getElementById('btnCompareSL'); if(bsl2) bsl2.disabled = (compareIds.size<2);
+              btn.textContent = t(lang2,'removeFromCompare');
+              btn.classList.add('secondary');
+              btn.onclick = ()=>{
+                compareIds.delete(id);
+                logger.push('compare_toggle', {hotelId:id, checked:false, via:'shortlist', size: compareIds.size});
+                document.getElementById('btnCompare').disabled = (compareIds.size<2);
+              const bsl2 = document.getElementById('btnCompareSL'); if(bsl2) bsl2.disabled = (compareIds.size<2);
+                updateShortlist(arr);
+              };
+            };
+          });
+        }
+
+        // ---- routing: if user asks compare/details/recommend, handle explicitly ----
+        if(intent.compare){
+          const ids = intent.ids.length ? intent.ids : (state.lastMentionedIds||[]);
+          ai(compareText(ids));
+          state.lastQuestion = 'compare';
+          return;
+        }
+
+        if(intent.detail && intent.ids.length===1){
+          const id = intent.ids[0];
+          const h = hotels.find(x=>x.id===id);
+          if(h){
+            ai((lang2==='zh'
+              ? `好的。${h.id} 的关键信息我先简单说一句：${fmtPrice(h.price)}，到地铁${h.metro_min}分钟，评分${h.rating.toFixed(1)}。需要我展开对比（比如和另一家）还是你先点“查看详情”？`
+              : `Sure. Quick summary for ${h.id}: ${fmtPrice(h.price)}, ${h.metro_min} min to metro, rating ${h.rating.toFixed(1)}. Do you want a comparison with another hotel, or would you click “View details” first?`));
+            state.lastQuestion = null;
+            // shortlist focus that single hotel
+            updateShortlist([h]);
+            return;
+          }
+        }
+
+        // ---- main narrowing ----
+        let cand = candidates();
+        state.prevShortlistIds = state.prevShortlistIds || [];
+        const used = constraintSummary();
+
+        // Decide shortlist size (1-2 if small)
+        let pickN = 3;
+        if(cand.length<=2) pickN = cand.length;
+        if(cand.length==0){
+          // near-miss: show best 2-3 and ask which constraint to relax
+          const near = bestN(hotels, 3);
+          updateShortlist(near);
+          ai((lang2==='zh'
+            ? `我已经应用了：${used}。但目前没有酒店能“同时满足”这些条件。\n我先给你最接近的：${briefList(near)}。\n你更愿意放松哪一项？（预算 / 地铁距离 / 安静）`
+            : `I applied: ${used}. There isn’t a perfect match.\nClosest options are: ${briefList(near)}.\nWhich would you relax (budget / metro distance / quiet)?`));
+          state.lastQuestion = 'relax';
+          return;
+        }
+
+        cand = cand.slice().sort((a,b)=>{
+          const pa = state.prevShortlistIds.includes(a.id) ? 1 : 0;
+          const pb = state.prevShortlistIds.includes(b.id) ? 1 : 0;
+          if(pa!==pb) return pb-pa;
+          return scoreHotel(b)-scoreHotel(a);
+        });
+        const short = cand.slice(0, Math.min(pickN, cand.length));
+        state.prevShortlistIds = short.map(h=>h.id);
+        updateShortlist(short);
+
+        // concise message: names only
+        // (debug removed):
+        // Determine next best question (one only) without loops
+        let nextQ = null;
+        if(!state.budgetMax && (intent.price || state.priority==='price')){
+          nextQ = (lang2==='zh' ? '你有预算上限吗？（例如：600以内/800以内）' : 'Do you have a budget ceiling? (e.g., under 600 / 800)');
+          state.lastQuestion = 'budget';
+        }else if(!state.metroMax && (state.priority==='location' || intent.location)){
+          nextQ = (lang2==='zh' ? '你希望离地铁几分钟以内？（直接回数字：5/8/10）' : 'How many minutes to the metro? (reply with a number: 5/8/10)');
+          state.lastQuestion = 'metro';
+        }else if(!state.priority){
+          nextQ = (lang2==='zh' ? '接下来你想把哪一项作为第一优先：价格 / 位置 / 舒适 / 可持续？' : 'What should be your #1 priority: price / location / comfort / sustainability?');
+          state.lastQuestion = 'priority';
+        }else{
+          state.lastQuestion = null;
+        }
+
+        // Build response aligned with empowerment & non-manipulation
+        const baseMsg = (lang2==='zh'
+          ? `已应用：${used}。\n目前符合你条件的有 ${cand.length} 家，优先建议先看：${briefList(short)}。\n需要我帮你对比其中两家吗？（例如：对比${short[0].id}和${short[Math.min(1,short.length-1)].id}）你可以：①点左侧“AI推荐清单”查看详情/直接选择；②把两家加入对比后点“对比”；③继续告诉我更多偏好（比如更安静/更舒适/更近地铁/想要可持续），我会再缩小范围。最终选择由你决定。`
+          : `Applied: ${used}.\nThere are ${cand.length} matches. I’d prioritize: ${briefList(short)}.\nWant me to compare two of them? (e.g., compare ${short[0].id} and ${short[Math.min(1,short.length-1)].id}) You can: (1) use the AI shortlist to view details or select; (2) add two hotels to compare and press “Compare”; (3) tell me more preferences (quiet/comfort/metro/sustainability) and I’ll narrow it further. The final choice is yours.`
+        );
+
+        const nudge = (state.turn%2===0)
+          ? (lang2==='zh' ? `\n\n🔎 小结：目前我理解的是「${constraintSummary()}」。如果有任何不准确，你可以随时说“修改预算/修改位置/不要求安静/更重视环保”等，我会马上调整。` : `\n\n🔎 Quick check: I understood “${constraintSummary()}”. If anything is off, you can say “change budget / change location / not strict about quiet / care more about sustainability”, and I’ll adjust right away.`)
+          : '';
+
+        if(intent.recommend || intent.unsure){
+          const rec = (lang2==='zh'
+            ? `\n（我不会替你下决定，只是把信息更清晰地组织出来。）`
+            : `\n(I won’t decide for you — I’m just organizing information so it’s easier to choose.)`);
+          ai(baseMsg + rec + nudge + (nextQ ? `\n\n${nextQ}` : ''));
+          return;
+        }
+
+        // If user supplied a new constraint (budget/metro/quiet) acknowledge without re-asking same thing
+        // Avoid asking metro if already set etc.
+        ai(baseMsg + nudge + (nextQ ? `\n\n${nextQ}` : ''));
+      }
+// NOTE: keep send handlers below (do not remove)
+      
+      send.onclick = ()=>{ respond(inp.value); inp.value=''; inp.focus(); };
+      inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ send.click(); }});
+    }
+  }
+
+  function renderHotels(){
+    const lang = logger.lang;
+    const list = document.getElementById('hotelList');
+    list.innerHTML = '';
+    const data = (condition==='c3') ? filtered : hotels;
+
+    data.forEach(h=>{
+      const el = document.createElement('div');
+      el.className = 'hotel';
+      const ttl = hotelTitle(h, lang);
+      const dist = district(h, lang);
+      const hi = highlights(h, lang);
+      const sust = h.sustainable ? sustLabel(h, lang) : '';
+      const sustBadge = h.sustainable ? `<span class="badge green">🌿 ${sust}</span>` : '';
+      const selected = (selectedHotelId===h.id);
+
+      el.innerHTML = `
+        <div>
+          <h3>${h.id}. ${ttl}</h3>
+          <div class="kpis">
+            <div class="kpi">★ ${h.rating.toFixed(1)} (${h.reviews})</div>
+            <div class="kpi">🚇 ${h.metro_min} min</div>
+            <div class="kpi">📍 ${dist}</div>
+          </div>
+          <div class="badges">
+            <span class="badge gray">${hi[0]}</span>
+            <span class="badge gray">${hi[1]}</span>
+            <span class="badge gray">${hi[2]}</span>
+            ${sustBadge}
+          </div>
+          <div class="tiny" style="margin-top:8px">${cancelText(h, lang)}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px">
+          <div class="price">${fmtPrice(h.price)}</div>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn secondary" data-act="view" data-id="${h.id}">${t(lang,'view')}</button>
+            <button class="btn" data-act="select" data-id="${h.id}">${selected ? t(lang,'selected') : t(lang,'select')}</button>
+          </div>
+          <label class="tiny"><input type="checkbox" data-act="cmp" data-id="${h.id}"/> ${t(lang,'compare')}</label>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+
+    list.querySelectorAll('button[data-act="view"]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.getAttribute('data-id');
+        const h = hotels.find(x=>x.id===id);
+        logger.push('view_details', {hotelId:id});
+        const sustSection = `
+          <div class="hr"></div>
+          <div style="font-weight:800; margin-bottom:6px">${t(logger.lang,'sustainability')}</div>
+          <div class="small">${(condition==='c3') ? t(logger.lang,'sustainabilityText') : sustBlurb(h, logger.lang)}</div>
+        `;
+        openModal(
+          `${h.id}. ${hotelTitle(h, logger.lang)}`,
+          `★ ${h.rating.toFixed(1)} · ${fmtPrice(h.price)} · 🚇 ${h.metro_min} min`,
+          `<div class="small"><b>${logger.lang==='zh'?'亮点':'Highlights'}</b>: ${highlights(h, logger.lang).join(' · ')}</div>
+           <div class="small" style="margin-top:8px"><b>${logger.lang==='zh'?'取消政策':'Cancellation'}</b>: ${cancelText(h, logger.lang)}</div>
+           ${sustSection}`
+        );
+      };
+    });
+
+    list.querySelectorAll('button[data-act="select"]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.getAttribute('data-id');
+        selectedHotelId = id;
+        logger.push('select_hotel', {hotelId:id});
+        document.getElementById('btnContinue').disabled = false;
+        renderHotels();
+      };
+    });
+
+    list.querySelectorAll('input[data-act="cmp"]').forEach(cb=>{
+      cb.onchange = ()=>{
+        const id = cb.getAttribute('data-id');
+        if(cb.checked) compareIds.add(id); else compareIds.delete(id);
+        logger.push('compare_toggle', {hotelId:id, checked:cb.checked, size: compareIds.size});
+        document.getElementById('btnCompare').disabled = (compareIds.size<2);
+              const bsl2 = document.getElementById('btnCompareSL'); if(bsl2) bsl2.disabled = (compareIds.size<2);
+      };
+    });
+  }
+
+  function compareModal(){
+    const lang = logger.lang;
+    const ids = Array.from(compareIds).slice(0,4);
+    const hs = ids.map(id=>hotels.find(h=>h.id===id)).filter(Boolean);
+    const rows = hs.map(h=>`
+      <tr>
+        <td><b>${h.id}. ${hotelTitle(h, lang)}</b><div class="tiny">★ ${h.rating.toFixed(1)} · 🚇 ${h.metro_min} min</div></td>
+        <td>${fmtPrice(h.price)}</td>
+        <td>${h.sustainable ? '🌿' : '—'}</td>
+        <td class="tiny">${(condition==='c3') ? t(lang,'sustainabilityText') : sustBlurb(h, lang)}</td>
+      </tr>`).join('');
+    logger.push('open_compare', {ids});
+    openModal(
+      lang==='zh'?'对比':'Compare',
+      ids.join(', '),
+      `<table style="width:100%; border-collapse:collapse">
+        <thead><tr>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border)">${lang==='zh'?'酒店':'Hotel'}</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border)">${lang==='zh'?'价格':'Price'}</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border)">${lang==='zh'?'可持续':'Sust.'}</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border)">${lang==='zh'?'说明':'Note'}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`
+    );
+  }
+
+  document.getElementById('btnCompare').onclick = compareModal;
+  document.getElementById('btnContinue').onclick = ()=>{
+    if(!selectedHotelId) return;
+    logger.finish({selectedHotelId});
+  };
+
+  function initLangSelector(){
+    const sel = document.getElementById('langSel');
+    sel.innerHTML = `
+      <option value="en">${t('en','en')}</option>
+      <option value="zh">${t('zh','zh')}</option>`;
+    sel.value = logger.lang;
+    sel.onchange = ()=>{
+      const u = new URL(window.location.href);
+      u.searchParams.set('lang', sel.value);
+      window.location.href = u.toString();
+    };
+  }
+
+  async function init(){
+    initLangSelector();
+    hotels = await loadHotels();
+    filtered = hotels.slice();
+    logger.push('page_load', {});
+    renderStatic();
+    renderLeftPanel();
+    renderHotels();
+    if(condition==='c3'){
+      // trigger initial filter log
+      logger.push('filter_change', {mustS:false, maxP:900, minR:0, maxM:999, count: filtered.length});
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

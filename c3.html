@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>H-Stay Mock</title>
+  <link rel="stylesheet" href="./assets/style.css"/>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1 id="brand"></h1>
+        <div class="meta" id="subtitle"></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="pill" id="pidpill"></div>
+      <select id="langSel" class="input" style="width:auto; min-width:120px"></select>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="hd"><h2 id="taskTitle"></h2><span class="pill" id="condpill"></span></div>
+      <div class="bd">
+        <div class="small" id="taskText"></div>
+        <div class="hr"></div>
+        <div class="small" style="margin-bottom:8px"><b id="controlsTitle"></b></div>
+        <div class="small" id="controlText"></div>
+        <div class="hr"></div>
+
+        <!-- left panel varies by condition -->
+        <div id="leftPanel"></div>
+
+        <div class="hr"></div>
+        <div class="tiny" id="note"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <h2 id="listTitle">Hotels</h2>
+        <div class="row">
+          <button class="btn secondary" id="btnCompare" disabled></button>
+          <button class="btn" id="btnContinue" disabled></button>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="list" id="hotelList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="panel">
+    <div class="hd">
+      <div style="display:flex; align-items:center; gap:10px">
+        <div class="logo" style="width:26px;height:26px;border-radius:10px"></div>
+        <div>
+          <div style="font-weight:800" id="modalTitle"></div>
+          <div class="tiny" id="modalSub"></div>
+        </div>
+      </div>
+      <button class="btn ghost" id="modalClose"></button>
+    </div>
+    <div class="bd" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="./assets/common.js"></script>
+<script>
+(function(){
+  const condition = 'c3';
+  const logger = makeLogger(condition);
+  let hotels = [];
+  let filtered = [];
+  let selectedHotelId = null;
+  let compareIds = new Set();
+
+  function setLang(lang){
+    const sel = document.getElementById('langSel');
+    sel.value = lang;
+    renderStatic();
+    renderLeftPanel();
+    renderHotels();
+  }
+
+  function renderStatic(){
+    const lang = logger.lang;
+    document.getElementById('brand').textContent = t(lang,'brand');
+    document.getElementById('subtitle').textContent = t(lang,'subtitle');
+    document.getElementById('pidpill').textContent = `PID: ${logger.pid}`;
+    document.getElementById('condpill').textContent = condition.toUpperCase();
+    document.getElementById('taskTitle').textContent = t(lang,'taskTitle');
+    document.getElementById('taskText').textContent = t(lang,'taskText');
+    document.getElementById('controlsTitle').textContent = t(lang,'controlsTitle');
+    document.getElementById('controlText').textContent = t(lang,'controlText');
+    document.getElementById('btnCompare').textContent = t(lang,'compare');
+    document.getElementById('btnContinue').textContent = t(lang,'continue');
+    document.getElementById('modalClose').textContent = t(lang,'close');
+    document.getElementById('note').textContent = t(lang,'note');
+  }
+
+  function openModal(title, sub, html){
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalSub').textContent = sub || '';
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modal').classList.add('on');
+  }
+  function closeModal(){ document.getElementById('modal').classList.remove('on'); }
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('modal').addEventListener('click', (e)=>{ if(e.target.id==='modal') closeModal(); });
+
+  function renderLeftPanel(){
+    const lang = logger.lang;
+    const host = document.getElementById('leftPanel');
+    host.innerHTML = '';
+    if(condition==='c3'){
+      const box = document.createElement('div');
+      box.innerHTML = `
+        <div class="small" style="margin-bottom:8px"><b>${t(lang,'filtersTitle')}</b></div>
+
+        <label><input type="checkbox" id="fSust"/> ${t(lang,'sustainable')}<div class="tiny">${t(lang,'sustainableHint')}</div></label>
+        <div class="hr"></div>
+
+        <div class="small" style="margin-bottom:6px"><b>${t(lang,'priceRange')}</b></div>
+        <label class="tiny"><input type="checkbox" class="fPrice" value="band1"/> ${lang==='zh'?'¥500–¥600':'¥500–¥600'}</label><br/>
+        <label class="tiny"><input type="checkbox" class="fPrice" value="band2"/> ${lang==='zh'?'¥601–¥800':'¥601–¥800'}</label><br/>
+        <label class="tiny"><input type="checkbox" class="fPrice" value="band3"/> ${lang==='zh'?'¥801–¥1000':'¥801–¥1000'}</label>
+        <div class="hr"></div>
+
+        <div class="small" style="margin-bottom:6px"><b>${t(lang,'ratingMin')}</b></div>
+        <label class="tiny"><input type="checkbox" class="fRate" value="4.3"/> 4.3+</label><br/>
+        <label class="tiny"><input type="checkbox" class="fRate" value="4.5"/> 4.5+</label><br/>
+        <label class="tiny"><input type="checkbox" class="fRate" value="4.7"/> 4.7+</label>
+        <div class="hr"></div>
+
+        <div class="small" style="margin-bottom:6px"><b>${t(lang,'metroMax')}</b></div>
+        <label class="tiny"><input type="checkbox" class="fMetro" value="5"/> ≤5</label><br/>
+        <label class="tiny"><input type="checkbox" class="fMetro" value="8"/> ≤8</label><br/>
+        <label class="tiny"><input type="checkbox" class="fMetro" value="10"/> ≤10</label>
+        <div class="hr"></div>
+
+        <button class="btn secondary" id="btnReset">${t(lang,'reset')}</button>
+      `;
+      host.appendChild(box);
+
+      const fSust = host.querySelector('#fSust');
+      const priceBoxes = Array.from(host.querySelectorAll('.fPrice'));
+      const rateBoxes = Array.from(host.querySelectorAll('.fRate'));
+      const metroBoxes = Array.from(host.querySelectorAll('.fMetro'));
+      const btnReset = host.querySelector('#btnReset');
+
+      function selectedBands(boxes){
+        return boxes.filter(b=>b.checked).map(b=>b.value);
+      }
+
+      function inPriceBands(price, bands){
+        if(bands.length===0) return true;
+        const ok = [];
+        if(bands.includes('band1')) ok.push(price>=500 && price<=600);
+        if(bands.includes('band2')) ok.push(price>=601 && price<=800);
+        if(bands.includes('band3')) ok.push(price>=801 && price<=1000);
+        return ok.some(Boolean);
+      }
+
+      function minRatingFromChecks(vals){
+        if(vals.length===0) return 0;
+        return Math.max(...vals.map(v=>parseFloat(v)));
+      }
+
+      function maxMetroFromChecks(vals){
+        if(vals.length===0) return 999;
+        return Math.min(...vals.map(v=>parseInt(v,10)));
+      }
+
+      function apply(){
+        const mustS = fSust.checked;
+        const pBands = selectedBands(priceBoxes);
+        const rSel = selectedBands(rateBoxes);
+        const mSel = selectedBands(metroBoxes);
+        const minR = minRatingFromChecks(rSel);
+        const maxM = maxMetroFromChecks(mSel);
+
+        filtered = hotels.filter(h=>{
+          if(mustS && !h.sustainable) return false;
+          if(!inPriceBands(h.price, pBands)) return false;
+          if(h.rating < minR) return false;
+          if(h.metro_min > maxM) return false;
+          return true;
+        });
+
+        logger.push('filter_change', {mustS, pBands, minR, maxM, count: filtered.length});
+        renderHotels();
+      }
+
+      [fSust, ...priceBoxes, ...rateBoxes, ...metroBoxes].forEach(el=>{
+        el.onchange = apply;
+      });
+
+      btnReset.onclick = ()=>{
+        fSust.checked=false;
+        priceBoxes.forEach(b=>b.checked=false);
+        rateBoxes.forEach(b=>b.checked=false);
+        metroBoxes.forEach(b=>b.checked=false);
+        logger.push('filter_reset', {});
+        apply();
+      };
+    }else{
+      // chatbot panel
+      const box = document.createElement('div');
+      box.innerHTML = `
+        <div class="small" style="margin-bottom:8px"><b>${t(lang,'chatTitle')}</b></div>
+        <div class="card" style="background:transparent; box-shadow:none; border:1px solid var(--border); border-radius:18px">
+          <div class="bd">
+            <div class="chat" id="chat"></div>
+            <div class="footer">
+              <input class="input" id="chatInput" placeholder="${t(lang,'placeholder')}" />
+              <button class="btn" id="chatSend">${t(lang,'send')}</button>
+            </div>
+            <div class="tiny" style="margin-top:8px">${t(lang,'controlText')}</div>
+          </div>
+        </div>
+      `;
+      host.appendChild(box);
+
+      const chat = host.querySelector('#chat');
+      const inp = host.querySelector('#chatInput');
+      const send = host.querySelector('#chatSend');
+
+      function addMsg(who, text){
+        const wrap = document.createElement('div');
+        wrap.className = 'msg ' + (who==='ai'?'ai':'me');
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = text;
+        if(who==='ai'){
+          wrap.appendChild(avatar);
+          wrap.appendChild(bubble);
+        }else{
+          wrap.appendChild(bubble);
+        }
+        chat.appendChild(wrap);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      // scripted AI
+      let stage = 0;
+      function ai(text){ addMsg('ai', text); logger.push('chat_ai', {text}); }
+
+      if(condition==='c1'){
+        ai(t(lang,'c1_open_1'));
+        setTimeout(()=>ai(t(lang,'c1_q')), 250);
+      }else{
+        ai(t(lang,'c2_open_1'));
+      }
+
+      function respond(userText){
+        const lang = logger.lang;
+        if(!userText.trim()) return;
+        addMsg('me', userText);
+        logger.push('chat_user', {text:userText});
+
+        const lower = userText.toLowerCase();
+        // minimal "real" helper responses
+        if(condition==='c1' && stage===0){
+          // accept A/B/C selection or any text
+          stage = 1;
+          ai(t(lang,'c1_ack'));
+          return;
+        }
+        // generic helper: compare request
+        if(lower.includes('compare') || userText.includes('对比') || userText.includes('比较')){
+          ai(lang==='zh' ? '你想对比哪两家（例如A和C）？我也可以按价格/位置/评分帮你整理。' :
+                           'Which two hotels would you like to compare (e.g., A and C)? I can summarize by price/location/rating.');
+          return;
+        }
+        // sustainability question handling
+        if(lower.includes('sustain') || lower.includes('green') || userText.includes('环保') || userText.includes('可持续')){
+          if(condition==='c2'){
+            ai(lang==='zh' ? '如果页面中有可持续信息，我可以把它原样整理给你；你也可以自行查看酒店详情页的描述。' :
+                             'If the page lists sustainability information, I can summarize what is shown. You can also check the hotel detail descriptions.');
+          }else{
+            ai(lang==='zh' ? '你希望把“可持续”作为加分项还是硬性条件？我可以按你的偏好，把符合舒适/价格的选项中可持续信息更清晰的标出来。' :
+                             'Do you want sustainability as a bonus or a requirement? I can help highlight clearer sustainability information among options that fit your comfort/price needs.');
+          }
+          return;
+        }
+        // fallback
+        ai(lang==='zh' ? '好的。你也可以直接在右侧浏览酒店并选择；如果你告诉我你最看重的因素（价格/位置/舒适度），我可以帮你快速筛选。' :
+                         'Okay. You can also browse the hotels on the right and select one. If you tell me your top priority (price/location/comfort), I can help narrow options.');
+      }
+
+      send.onclick = ()=>{ respond(inp.value); inp.value=''; inp.focus(); };
+      inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ send.click(); }});
+    }
+  }
+
+  function renderHotels(){
+    const lang = logger.lang;
+    const list = document.getElementById('hotelList');
+    list.innerHTML = '';
+    const data = (condition==='c3') ? filtered : hotels;
+
+    data.forEach(h=>{
+      const el = document.createElement('div');
+      el.className = 'hotel';
+      const ttl = hotelTitle(h, lang);
+      const dist = district(h, lang);
+      const hi = highlights(h, lang);
+      const sust = h.sustainable ? sustLabel(h, lang) : '';
+      const sustBadge = h.sustainable ? `<span class="badge green">🌿 ${sust}</span>` : '';
+      const selected = (selectedHotelId===h.id);
+
+      el.innerHTML = `
+        <div>
+          <h3>${h.id}. ${ttl}</h3>
+          <div class="kpis">
+            <div class="kpi">★ ${h.rating.toFixed(1)} (${h.reviews})</div>
+            <div class="kpi">🚇 ${h.metro_min} min</div>
+            <div class="kpi">📍 ${dist}</div>
+          </div>
+          <div class="badges">
+            <span class="badge gray">${hi[0]}</span>
+            <span class="badge gray">${hi[1]}</span>
+            <span class="badge gray">${hi[2]}</span>
+            ${sustBadge}
+          </div>
+          <div class="tiny" style="margin-top:8px">${cancelText(h, lang)}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px">
+          <div class="price">${fmtPrice(h.price)}</div>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn secondary" data-act="view" data-id="${h.id}">${t(lang,'view')}</button>
+            <button class="btn" data-act="select" data-id="${h.id}">${selected ? t(lang,'selected') : t(lang,'select')}</button>
+          </div>
+          <label class="tiny"><input type="checkbox" data-act="cmp" data-id="${h.id}"/> ${t(lang,'compare')}</label>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+
+    list.querySelectorAll('button[data-act="view"]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.getAttribute('data-id');
+        const h = hotels.find(x=>x.id===id);
+        logger.push('view_details', {hotelId:id});
+        const sustSection = `
+          <div class="hr"></div>
+          <div style="font-weight:800; margin-bottom:6px">${t(logger.lang,'sustainability')}</div>
+          <div class="small">${(condition==='c3') ? t(logger.lang,'sustainabilityText') : sustBlurb(h, logger.lang)}</div>
+        `;
+        openModal(
+          `${h.id}. ${hotelTitle(h, logger.lang)}`,
+          `★ ${h.rating.toFixed(1)} · ${fmtPrice(h.price)} · 🚇 ${h.metro_min} min`,
+          `<div class="small"><b>${logger.lang==='zh'?'亮点':'Highlights'}</b>: ${highlights(h, logger.lang).join(' · ')}</div>
+           <div class="small" style="margin-top:8px"><b>${logger.lang==='zh'?'取消政策':'Cancellation'}</b>: ${cancelText(h, logger.lang)}</div>
+           ${sustSection}`
+        );
+      };
+    });
+
+    list.querySelectorAll('button[data-act="select"]').forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.getAttribute('data-id');
+        selectedHotelId = id;
+        logger.push('select_hotel', {hotelId:id});
+        document.getElementById('btnContinue').disabled = false;
+        renderHotels();
+      };
+    });
+
+    list.querySelectorAll('input[data-act="cmp"]').forEach(cb=>{
+      cb.onchange = ()=>{
+        const id = cb.getAttribute('data-id');
+        if(cb.checked) compareIds.add(id); else compareIds.delete(id);
+        logger.push('compare_toggle', {hotelId:id, checked:cb.checked, size: compareIds.size});
+        document.getElementById('btnCompare').disabled = (compareIds.size<2);
+      };
+    });
+  }
+
+  function compareModal(){
+    const lang = logger.lang;
+    const ids = Array.from(compareIds).slice(0,4);
+    const hs = ids.map(id=>hotels.find(h=>h.id===id)).filter(Boolean);
+    const rows = hs.map(h=>`
+      <tr>
+        <td><b>${h.id}. ${hotelTitle(h, lang)}</b><div class="tiny">★ ${h.rating.toFixed(1)} · 🚇 ${h.metro_min} min</div></td>
+        <td>${fmtPrice(h.price)}</td>
+        <td>${h.sustainable ? '🌿' : '—'}</td>
+        <td class="tiny">${(condition==='c3') ? t(lang,'sustainabilityText') : sustBlurb(h, lang)}</td>
+      </tr>`).join('');
+    logger.push('open_compare', {ids});
+    openModal(
+      lang==='zh'?'对比':'Compare',
+      ids.join(', '),
+      `<table style="width:100%; border-collapse:collapse">
+        <thead><tr>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border)">${lang==='zh'?'酒店':'Hotel'}</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border)">${lang==='zh'?'价格':'Price'}</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border)">${lang==='zh'?'可持续':'Sust.'}</th>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid var(--border)">${lang==='zh'?'说明':'Note'}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`
+    );
+  }
+
+  document.getElementById('btnCompare').onclick = compareModal;
+  document.getElementById('btnContinue').onclick = ()=>{
+    if(!selectedHotelId) return;
+    logger.finish({selectedHotelId});
+  };
+
+  function initLangSelector(){
+    const sel = document.getElementById('langSel');
+    sel.innerHTML = `
+      <option value="en">${t('en','en')}</option>
+      <option value="zh">${t('zh','zh')}</option>`;
+    sel.value = logger.lang;
+    sel.onchange = ()=>{
+      const u = new URL(window.location.href);
+      u.searchParams.set('lang', sel.value);
+      window.location.href = u.toString();
+    };
+  }
+
+  async function init(){
+    initLangSelector();
+    hotels = await loadHotels();
+    filtered = hotels.slice();
+    logger.push('page_load', {});
+    renderStatic();
+    renderLeftPanel();
+    renderHotels();
+    if(condition==='c3'){
+      // trigger initial filter log
+      logger.push('filter_change', {mustS:false, pBands:[], minR:0, maxM:999, count: filtered.length});
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

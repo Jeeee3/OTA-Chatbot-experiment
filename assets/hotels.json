@@ -1,0 +1,422 @@
+[
+  {
+    "id": "B",
+    "name_en": "MetroLite Hotel",
+    "name_zh": "轻居酒店",
+    "price": 590,
+    "rating": 4.4,
+    "reviews": 2350,
+    "metro_min": 3,
+    "district_en": "Transit Hub",
+    "district_zh": "交通枢纽",
+    "highlights_en": [
+      "Best location",
+      "Fast check-in",
+      "Good Wi-Fi"
+    ],
+    "highlights_zh": [
+      "位置极佳",
+      "快速入住",
+      "网络好"
+    ],
+    "cancel_en": "Free cancellation until 1 day before",
+    "cancel_zh": "入住前1天可免费取消",
+    "sustainable": false,
+    "sust_label_en": "",
+    "sust_label_zh": "",
+    "sust_blurb_en": "Limited sustainability information on the page.",
+    "sust_blurb_zh": "页面可持续信息较少。"
+  },
+  {
+    "id": "A",
+    "name_en": "Cityview Boutique Hotel",
+    "name_zh": "城景精品酒店",
+    "price": 720,
+    "rating": 4.7,
+    "reviews": 1842,
+    "metro_min": 6,
+    "district_en": "Central Business District",
+    "district_zh": "市中心商务区",
+    "highlights_en": [
+      "Gym",
+      "Quiet rooms",
+      "Great soundproofing"
+    ],
+    "highlights_zh": [
+      "健身房",
+      "房间安静",
+      "隔音好"
+    ],
+    "cancel_en": "Free cancellation within 24 hours",
+    "cancel_zh": "24小时内可免费取消",
+    "sustainable": true,
+    "sust_label_en": "Sustainable stay",
+    "sust_label_zh": "可持续住宿",
+    "sust_blurb_en": "Verified certification (Green Key) plus low-plastic and energy-saving measures.",
+    "sust_blurb_zh": "可验证认证（Green Key）+ 减塑与节能措施明确。"
+  },
+  {
+    "id": "E",
+    "name_en": "Value Inn Express",
+    "name_zh": "经济连锁酒店",
+    "price": 520,
+    "rating": 4.1,
+    "reviews": 3180,
+    "metro_min": 5,
+    "district_en": "Old Town",
+    "district_zh": "老城区",
+    "highlights_en": [
+      "Lowest price",
+      "Simple and clean",
+      "Near convenience stores"
+    ],
+    "highlights_zh": [
+      "最便宜",
+      "简洁干净",
+      "便利店多"
+    ],
+    "cancel_en": "Non-refundable",
+    "cancel_zh": "不可退款",
+    "sustainable": false,
+    "sust_label_en": "",
+    "sust_label_zh": "",
+    "sust_blurb_en": "No sustainability information provided.",
+    "sust_blurb_zh": "未提供可持续信息。"
+  },
+  {
+    "id": "C",
+    "name_en": "Garden Comfort Hotel",
+    "name_zh": "园景舒适酒店",
+    "price": 680,
+    "rating": 4.6,
+    "reviews": 1268,
+    "metro_min": 9,
+    "district_en": "Riverside",
+    "district_zh": "江畔区",
+    "highlights_en": [
+      "Large rooms",
+      "Popular breakfast",
+      "Good value"
+    ],
+    "highlights_zh": [
+      "房间大",
+      "早餐口碑好",
+      "性价比高"
+    ],
+    "cancel_en": "Free cancellation within 48 hours",
+    "cancel_zh": "48小时内可免费取消",
+    "sustainable": true,
+    "sust_label_en": "Sustainable stay",
+    "sust_label_zh": "可持续住宿",
+    "sust_blurb_en": "Clear low-plastic and water-saving practices; no third-party certification shown.",
+    "sust_blurb_zh": "减塑与节水做法明确；未显示第三方认证。"
+  },
+  {
+    "id": "F",
+    "name_en": "Studio Design Hotel",
+    "name_zh": "设计师酒店",
+    "price": 780,
+    "rating": 4.5,
+    "reviews": 1410,
+    "metro_min": 8,
+    "district_en": "Art District",
+    "district_zh": "艺术区",
+    "highlights_en": [
+      "Stylish design",
+      "Great photos",
+      "Popular lounge"
+    ],
+    "highlights_zh": [
+      "设计感强",
+      "好拍照",
+      "大堂吧受欢迎"
+    ],
+    "cancel_en": "Free cancellation within 24 hours",
+    "cancel_zh": "24小时内可免费取消",
+    "sustainable": false,
+    "sust_label_en": "",
+    "sust_label_zh": "",
+    "sust_blurb_en": "Property self-claims sustainability; details are minimal.",
+    "sust_blurb_zh": "酒店自声明绿色运营，但细节较少。"
+  },
+  {
+    "id": "D",
+    "name_en": "Executive Residence Suites",
+    "name_zh": "行政公寓",
+    "price": 850,
+    "rating": 4.8,
+    "reviews": 904,
+    "metro_min": 12,
+    "district_en": "Museum Quarter",
+    "district_zh": "博物馆片区",
+    "highlights_en": [
+      "Most comfortable",
+      "Spacious",
+      "Premium bedding"
+    ],
+    "highlights_zh": [
+      "最舒适",
+      "空间大",
+      "床品高级"
+    ],
+    "cancel_en": "Free cancellation until 3 days before",
+    "cancel_zh": "入住前3天可免费取消",
+    "sustainable": true,
+    "sust_label_en": "Sustainable stay",
+    "sust_label_zh": "可持续住宿",
+    "sust_blurb_en": "Verified certification (EarthCheck) with comprehensive energy and water measures.",
+    "sust_blurb_zh": "可验证认证（EarthCheck），节能节水措施完整。"
+  },
+  {
+    "id": "I",
+    "name_en": "Skyline Premium Hotel",
+    "name_zh": "天际高端酒店",
+    "price": 920,
+    "rating": 4.7,
+    "reviews": 740,
+    "metro_min": 9,
+    "district_en": "CBD",
+    "district_zh": "市中心商务区",
+    "highlights_en": [
+      "Premium bedding",
+      "Great view",
+      "Popular lounge"
+    ],
+    "highlights_zh": [
+      "床品高级",
+      "景观好",
+      "大堂吧受欢迎"
+    ],
+    "cancel_en": "Free cancellation until 2 days before",
+    "cancel_zh": "入住前2天可免费取消",
+    "sustainable": false,
+    "sust_label_en": "",
+    "sust_label_zh": "",
+    "sust_blurb_en": "No sustainability information on the booking page.",
+    "sust_blurb_zh": "预订页未显示可持续信息。"
+  },
+  {
+    "id": "G",
+    "name_en": "Harborline Business Hotel",
+    "name_zh": "港湾商务酒店",
+    "price": 640,
+    "rating": 4.5,
+    "reviews": 2210,
+    "metro_min": 4,
+    "district_en": "Harborfront",
+    "district_zh": "海港沿线",
+    "highlights_en": [
+      "Best location",
+      "Fast check-in",
+      "Quiet floors"
+    ],
+    "highlights_zh": [
+      "位置极佳",
+      "快速入住",
+      "楼层安静"
+    ],
+    "cancel_en": "Free cancellation within 24 hours",
+    "cancel_zh": "24小时内可免费取消",
+    "sustainable": true,
+    "sust_label_en": "Sustainable stay",
+    "sust_label_zh": "可持续住宿",
+    "sust_blurb_en": "Verified certification (Green Key) and clear linen/towel reuse and low-plastic policy.",
+    "sust_blurb_zh": "可验证认证（Green Key），布草重复使用与减塑政策清晰。"
+  },
+  {
+    "id": "K",
+    "name_en": "Airport Connect Hotel",
+    "name_zh": "机场连通酒店",
+    "price": 600,
+    "rating": 4.2,
+    "reviews": 1980,
+    "metro_min": 11,
+    "district_en": "Airport Line",
+    "district_zh": "机场线沿线",
+    "highlights_en": [
+      "Fast check-in",
+      "Good Wi-Fi",
+      "Best location"
+    ],
+    "highlights_zh": [
+      "快速入住",
+      "网络好",
+      "位置极佳"
+    ],
+    "cancel_en": "Free cancellation within 24 hours",
+    "cancel_zh": "24小时内可免费取消",
+    "sustainable": false,
+    "sust_label_en": "",
+    "sust_label_zh": "",
+    "sust_blurb_en": "Sustainability details are not available on this page.",
+    "sust_blurb_zh": "该页面未提供可持续细节。"
+  },
+  {
+    "id": "H",
+    "name_en": "Riverside Eco Hotel",
+    "name_zh": "江畔绿色酒店",
+    "price": 780,
+    "rating": 4.6,
+    "reviews": 1160,
+    "metro_min": 10,
+    "district_en": "Riverside",
+    "district_zh": "江畔区",
+    "highlights_en": [
+      "Popular breakfast",
+      "Quiet rooms",
+      "Great view"
+    ],
+    "highlights_zh": [
+      "早餐口碑好",
+      "房间安静",
+      "景观好"
+    ],
+    "cancel_en": "Free cancellation within 48 hours",
+    "cancel_zh": "48小时内可免费取消",
+    "sustainable": true,
+    "sust_label_en": "Sustainable stay",
+    "sust_label_zh": "可持续住宿",
+    "sust_blurb_en": "Verified certification (Green Globe) and published energy/water reduction targets.",
+    "sust_blurb_zh": "可验证认证（Green Globe），并公开节能节水目标。"
+  },
+  {
+    "id": "N",
+    "name_en": "Family Comfort Inn",
+    "name_zh": "亲子舒适酒店",
+    "price": 710,
+    "rating": 4.4,
+    "reviews": 2100,
+    "metro_min": 13,
+    "district_en": "Residential Area",
+    "district_zh": "居住区",
+    "highlights_en": [
+      "Large rooms",
+      "Popular breakfast",
+      "Good value"
+    ],
+    "highlights_zh": [
+      "房间大",
+      "早餐口碑好",
+      "性价比高"
+    ],
+    "cancel_en": "Free cancellation within 48 hours",
+    "cancel_zh": "48小时内可免费取消",
+    "sustainable": false,
+    "sust_label_en": "",
+    "sust_label_zh": "",
+    "sust_blurb_en": "No sustainability information provided.",
+    "sust_blurb_zh": "未提供可持续信息。"
+  },
+  {
+    "id": "J",
+    "name_en": "MetroGreen Select",
+    "name_zh": "地铁绿选酒店",
+    "price": 610,
+    "rating": 4.4,
+    "reviews": 2680,
+    "metro_min": 2,
+    "district_en": "Transit Hub",
+    "district_zh": "交通枢纽",
+    "highlights_en": [
+      "Closest to metro",
+      "Good Wi-Fi",
+      "Great value"
+    ],
+    "highlights_zh": [
+      "离地铁最近",
+      "网络好",
+      "性价比高"
+    ],
+    "cancel_en": "Free cancellation until 1 day before",
+    "cancel_zh": "入住前1天可免费取消",
+    "sustainable": true,
+    "sust_label_en": "Sustainable stay",
+    "sust_label_zh": "可持续住宿",
+    "sust_blurb_en": "Verified certification (Green Key); low-plastic amenity policy.",
+    "sust_blurb_zh": "可验证认证（Green Key）；减塑备品政策。"
+  },
+  {
+    "id": "O",
+    "name_en": "Budget Capsule Hotel",
+    "name_zh": "胶囊经济酒店",
+    "price": 480,
+    "rating": 4.0,
+    "reviews": 4020,
+    "metro_min": 2,
+    "district_en": "Transit Hub",
+    "district_zh": "交通枢纽",
+    "highlights_en": [
+      "Lowest price",
+      "Closest to metro",
+      "Fast check-in"
+    ],
+    "highlights_zh": [
+      "最便宜",
+      "离地铁最近",
+      "快速入住"
+    ],
+    "cancel_en": "Non-refundable",
+    "cancel_zh": "不可退款",
+    "sustainable": false,
+    "sust_label_en": "",
+    "sust_label_zh": "",
+    "sust_blurb_en": "No sustainability information provided.",
+    "sust_blurb_zh": "未提供可持续信息。"
+  },
+  {
+    "id": "L",
+    "name_en": "Sunrise Conference Hotel",
+    "name_zh": "晨曦会议酒店",
+    "price": 690,
+    "rating": 4.5,
+    "reviews": 980,
+    "metro_min": 7,
+    "district_en": "Convention Center",
+    "district_zh": "会展中心",
+    "highlights_en": [
+      "Large rooms",
+      "Gym",
+      "Fast check-in"
+    ],
+    "highlights_zh": [
+      "房间大",
+      "健身房",
+      "快速入住"
+    ],
+    "cancel_en": "Free cancellation within 24 hours",
+    "cancel_zh": "24小时内可免费取消",
+    "sustainable": true,
+    "sust_label_en": "Sustainable stay",
+    "sust_label_zh": "可持续住宿",
+    "sust_blurb_en": "Third-party verified practices; clear waste-sorting and energy-saving measures.",
+    "sust_blurb_zh": "第三方核验实践；垃圾分类与节能措施明确。"
+  },
+  {
+    "id": "M",
+    "name_en": "Old Town Heritage Hotel",
+    "name_zh": "古城传承酒店",
+    "price": 660,
+    "rating": 4.3,
+    "reviews": 1520,
+    "metro_min": 6,
+    "district_en": "Old Town",
+    "district_zh": "老城区",
+    "highlights_en": [
+      "Great photos",
+      "Quiet rooms",
+      "Good value"
+    ],
+    "highlights_zh": [
+      "好拍照",
+      "房间安静",
+      "性价比高"
+    ],
+    "cancel_en": "Free cancellation within 24 hours",
+    "cancel_zh": "24小时内可免费取消",
+    "sustainable": true,
+    "sust_label_en": "Sustainable stay",
+    "sust_label_zh": "可持续住宿",
+    "sust_blurb_en": "Sustainability practices listed (waste sorting, reduced plastics) but verification is unclear.",
+    "sust_blurb_zh": "列出减塑与垃圾分类做法，但核验信息不清晰。"
+  }
+]

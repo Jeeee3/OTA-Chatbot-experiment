@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI × OTA Experiment Pack</title>
+  <link rel="stylesheet" href="assets/style.css"/>
+</head>
+<body>
+  <div class="app" style="max-width:980px; margin:22px auto; padding:0 16px">
+    <div class="panel" style="padding:18px 18px">
+      <h2 style="margin:0 0 8px 0">AI × OTA Experiment Pack</h2>
+      <div class="small" id="desc">
+        Choose a condition to preview. You can pass parameters: <code>?pid=001&lang=en</code> (or <code>lang=zh</code>) and optional <code>return_url=...</code>.
+      </div>
+      <div class="hr"></div>
+
+      <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap">
+        <button class="btn secondary" id="langEN">English</button>
+        <button class="btn secondary" id="langZH">中文</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="small" style="margin-bottom:8px"><b>Conditions</b></div>
+      <div class="row" style="flex-direction:column; align-items:stretch; gap:10px">
+        <a class="btn" id="goC1" href="c1.html?pid=demo&lang=en">C1 · Sustainability-focused Conversational AI</a>
+        <a class="btn" id="goC2" href="c2.html?pid=demo&lang=en">C2 · Generic Conversational AI</a>
+        <a class="btn" id="goC3" href="c3.html?pid=demo&lang=en">C3 · Traditional OTA Filters</a>
+      </div>
+
+      <div class="hr"></div>
+      <div class="tiny" id="hint">
+        Tip: in your survey platform, randomize participants to one of these URLs and include pid. Example: <code>c1.html?pid={{id}}&lang=zh&return_url={{survey}}</code>.
+      </div>
+    </div>
+  </div>
+
+<script>
+  let lang = "en";
+  const setLang = (l)=>{
+    lang=l;
+    document.getElementById("desc").innerHTML = (lang==="zh")
+      ? '选择一个情境进行预览。你可以传入参数：<code>?pid=001&lang=zh</code>（或 <code>lang=en</code>），以及可选的 <code>return_url=...</code>。'
+      : 'Choose a condition to preview. You can pass parameters: <code>?pid=001&lang=en</code> (or <code>lang=zh</code>) and optional <code>return_url=...</code>.';
+    document.getElementById("goC1").textContent = (lang==="zh") ? "情境1 · 可持续导向对话式AI" : "C1 · Sustainability-focused Conversational AI";
+    document.getElementById("goC2").textContent = (lang==="zh") ? "情境2 · 通用对话式AI" : "C2 · Generic Conversational AI";
+    document.getElementById("goC3").textContent = (lang==="zh") ? "情境3 · 传统OTA筛选界面" : "C3 · Traditional OTA Filters";
+    document.getElementById("hint").innerHTML = (lang==="zh")
+      ? '提示：在问卷平台中把被试随机分配到以下链接之一，并带上 pid。示例：<code>c1.html?pid={{id}}&lang=zh&return_url={{survey}}</code>。'
+      : 'Tip: in your survey platform, randomize participants to one of these URLs and include pid. Example: <code>c1.html?pid={{id}}&lang=zh&return_url={{survey}}</code>.';
+    document.getElementById("goC1").href = `c1.html?pid=demo&lang=${lang}`;
+    document.getElementById("goC2").href = `c2.html?pid=demo&lang=${lang}`;
+    document.getElementById("goC3").href = `c3.html?pid=demo&lang=${lang}`;
+  };
+  document.getElementById("langEN").onclick=()=>setLang("en");
+  document.getElementById("langZH").onclick=()=>setLang("zh");
+  setLang("en");
+</script>
+</body>
+</html>
